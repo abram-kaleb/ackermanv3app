@@ -1,19 +1,15 @@
 // src/App.tsx
-
 import { useState, createContext } from 'react';
 import Home from './pages/Home';
-import RawData from './pages/RawData';
 
-export const AppStatusContext = createContext({ rawRunning: true });
+export const AppStatusContext = createContext({ rawRunning: false });
 
 function App() {
-    const [activePage] = useState<'home' | 'raw'>('home');
+    const [activePage] = useState<'home'>('home');
 
     return (
-        <AppStatusContext.Provider value={{ rawRunning: true }}>
-
-
-            {activePage === 'home' ? <Home /> : <RawData />}
+        <AppStatusContext.Provider value={{ rawRunning: false }}>
+            <Home />
         </AppStatusContext.Provider>
     );
 }
