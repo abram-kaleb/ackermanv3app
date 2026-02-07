@@ -94,9 +94,9 @@ const Home = () => {
             </header>
 
             {/* CANVAS */}
-            {/* <div className="absolute inset-0 z-0">
+            <div className="absolute inset-0 z-0">
                 <EngineCanvas />
-            </div> */}
+            </div>
 
             <div className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-6 md:gap-10">
                 {[
