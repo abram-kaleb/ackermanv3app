@@ -5,7 +5,7 @@ import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 
 export default function EngineModel() {
-    const { scene } = useGLTF(`${import.meta.env.BASE_URL}engine.glb`);
+    const { scene } = useGLTF('./engine.glb');
     const modelRef = useRef<THREE.Group>(null);
 
     useFrame((_state, delta) => {
@@ -23,3 +23,5 @@ export default function EngineModel() {
         />
     );
 }
+
+useGLTF.preload('./engine.glb');
