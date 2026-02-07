@@ -1,6 +1,6 @@
 // src/components/EngineCanvas.tsx
 
-import React, { Suspense } from 'react';
+import { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stage } from '@react-three/drei';
 import EngineModel from './EngineModel';

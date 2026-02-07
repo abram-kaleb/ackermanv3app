@@ -1,5 +1,5 @@
 // src/pages/RawData.tsx
-import React, { useEffect, useState, useContext, Fragment, useRef } from 'react';
+import { useEffect, useState, useContext, Fragment, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { AppStatusContext } from '../App';
 import { translations } from '../data/translations';

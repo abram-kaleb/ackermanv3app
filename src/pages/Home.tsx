@@ -1,6 +1,6 @@
 // src/pages/Home.tsx
 
-import React, { useEffect, useRef, useState } from 'react';
+import react, { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import EngineCanvas from '../components/EngineCanvas';
 import { uiLabels } from '../data/translations';
