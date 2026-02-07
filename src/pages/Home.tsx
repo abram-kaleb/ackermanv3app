@@ -1,16 +1,11 @@
 // src/pages/Home.tsx
 
-import react, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import EngineCanvas from '../components/EngineCanvas';
 import { uiLabels } from '../data/translations';
 import type { Language } from '../data/translations';
 import { translations } from '../data/translations';
-
-interface HeaderProps {
-    lang: Language;
-    setLang: (lang: Language) => void;
-}
 
 const SERVER_IP = '192.168.137.1';
 const socket = io(`http://${SERVER_IP}:4000`, {
