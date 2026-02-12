@@ -1,14 +1,11 @@
-// src/pages/Home.tsx
+// src/pages/Replay.tsx
 
-import { useEffect, useState } from 'react';
-import { io } from 'socket.io-client';
+import { useEffect, useState, useRef } from 'react';
 import EngineCanvas from '../components/EngineCanvas';
+import { translations } from '../data/translations';
+import type { Language } from '../data/translations';
 
 const SERVER_IP = '192.168.137.1';
-const socket = io(`http://${SERVER_IP}:4000`, {
-    transports: ['websocket', 'polling'],
-    autoConnect: true
-});
 
 const BackgroundFUI = () => {
     return (
@@ -23,28 +20,151 @@ const BackgroundFUI = () => {
     );
 };
 
-const Home = () => {
-    const [engineData, setEngineData] = useState<any>(null);
-    const [lang, setLang] = useState<Language>('de');
+const Replay = () => {
+    const [availableDates, setAvailableDates] = useState<string[]>([]);
+    const [historyData, setHistoryData] = useState<any[]>([]);
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [lang] = useState<Language>('de');
+
+    const [step, setStep] = useState<'yy' | 'mm' | 'dd'>('yy');
+    const [selectedYY, setSelectedYY] = useState('');
+    const [selectedMM, setSelectedMM] = useState('');
+    const [selectedDD, setSelectedDD] = useState('');
+    const [showPicker, setShowPicker] = useState(false);
+
+    const pickerRef = useRef<HTMLDivElement>(null);
+    const engineData = historyData[currentIndex] || null;
 
     useEffect(() => {
-        fetch(`http://${SERVER_IP}:4000/api/data`)
-            .then(res => res.json())
-            .then(data => { if (Array.isArray(data) && data.length > 0) setEngineData(data[0]); })
-            .catch(err => console.error(err));
-
-        socket.on('data_update', (newData) => setEngineData(newData));
-        return () => { socket.off('data_update'); };
+        const fetchDates = async () => {
+            try {
+                const res = await fetch(`http://${SERVER_IP}:4000/api/available-dates`);
+                const data = await res.json();
+                setAvailableDates(Array.isArray(data) ? data : []);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchDates();
     }, []);
 
+    const years = [...new Set(availableDates.filter(d => d.length >= 2).map(d => d.substring(0, 2)))].sort();
+    const months = [...new Set(availableDates.filter(d => d.startsWith(selectedYY) && d.length >= 4).map(d => d.substring(2, 4)))].sort();
+    const days = availableDates.filter(d => d.startsWith(selectedYY + selectedMM) && d.length >= 6).map(d => d.substring(4, 6)).sort();
+
+    const handleSelectDay = async (dd: string) => {
+        const fullDate = selectedYY + selectedMM + dd;
+        setSelectedDD(dd);
+        setShowPicker(false);
+        try {
+            const res = await fetch(`http://${SERVER_IP}:4000/api/history?datum=${fullDate}`);
+            const data = await res.json();
+            setHistoryData(data);
+            setCurrentIndex(0);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+        if (isPlaying && currentIndex < historyData.length - 1) {
+            timer = setInterval(() => {
+                setCurrentIndex(prev => prev + 1);
+            }, 1000);
+        } else {
+            setIsPlaying(false);
+        }
+        return () => clearInterval(timer);
+    }, [isPlaying, currentIndex, historyData]);
+
     return (
-        <div className="w-full h-full relative overflow-hidden font-sans text-white">
+        <div className="w-full h-full relative overflow-hidden font-sans text-white bg-[#0f171d]">
             <BackgroundFUI />
 
+            {/* HEADER: DATE PICKER & REPLAY STATUS */}
+            <header className="absolute top-[5.5vw] left-0 w-full flex justify-between items-center px-[3vw] z-30">
+                <div className="relative">
+                    <button
+                        onClick={() => { setShowPicker(!showPicker); setStep('yy'); }}
+                        className="flex items-center gap-[1vw] backdrop-blur-md bg-black/20 border border-white/10 px-[1.5vw] py-[0.6vw] rounded-xl hover:bg-white/5 transition-all"
+                    >
+                        <div className="w-[2px] h-[1.5vw] bg-[#FFD700]" />
+                        <div className="text-left">
+                            <p className="text-[0.5vw] font-black text-white/40 uppercase tracking-[0.2em]">ARCHIVE_DATE</p>
+                            <p className="text-[1vw] font-mono text-white">
+                                {selectedDD ? `${selectedDD}.${selectedMM}.20${selectedYY}` : 'SELECT_DATE'}
+                            </p>
+                        </div>
+                    </button>
 
+                    {showPicker && (
+                        <div ref={pickerRef} className="absolute top-full mt-[0.5vw] backdrop-blur-xl bg-black/80 border border-white/10 p-[1.2vw] rounded-xl shadow-2xl w-[18vw] z-50">
+                            <div className="flex justify-between items-center mb-[1vw]">
+                                <h3 className="text-[0.6vw] font-black uppercase text-white/40 tracking-widest">Select {step}</h3>
+                                {step !== 'yy' && (
+                                    <button onClick={() => setStep(step === 'dd' ? 'mm' : 'yy')} className="text-[0.6vw] text-[#FFD700] font-bold">BACK</button>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-3 gap-[0.4vw]">
+                                {step === 'yy' && years.map(yy => (
+                                    <button key={yy} onClick={() => { setSelectedYY(yy); setStep('mm'); }} className="py-[0.5vw] bg-white/5 rounded hover:bg-[#FFD700] hover:text-black transition-all font-mono text-[0.8vw]">20{yy}</button>
+                                ))}
+                                {step === 'mm' && months.map(mm => (
+                                    <button key={mm} onClick={() => { setSelectedMM(mm); setStep('dd'); }} className="py-[0.5vw] bg-white/5 rounded hover:bg-[#FFD700] hover:text-black transition-all font-mono text-[0.8vw]">{mm}</button>
+                                ))}
+                                {step === 'dd' && days.map(dd => (
+                                    <button key={dd} onClick={() => handleSelectDay(dd)} className="py-[0.5vw] bg-white/5 rounded hover:bg-[#FFD700] hover:text-black transition-all font-mono text-[0.8vw]">{dd}</button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
 
+                <div className="flex flex-col items-end">
+                    <div className="flex items-center gap-[0.5vw] mb-[0.2vw]">
+                        <div className={`w-[0.4vw] h-[0.4vw] rounded-full ${isPlaying ? 'bg-[#FFD700] animate-pulse' : 'bg-white/20'}`} />
+                        <p className="text-[0.5vw] font-black text-white/40 uppercase tracking-[0.3em]">REPLAY_TIME</p>
+                    </div>
+                    <p className="text-[2.2vw] font-mono font-light text-white leading-none tracking-tighter">
+                        {engineData?.["6"] || "00:00:00"}
+                    </p>
+                </div>
+            </header>
 
-            {/* TOP CENTER: DATE, TIME & OPERATION INFO */}
+            {/* PLAYBACK CONTROL HUD */}
+            <div className="absolute bottom-[2vw] left-1/2 -translate-x-1/2 z-40 w-[40vw]">
+                <div className="backdrop-blur-md bg-white/5 border border-white/10 p-[1vw] rounded-2xl flex items-center gap-[1.5vw] shadow-2xl">
+                    <button
+                        onClick={() => setIsPlaying(!isPlaying)}
+                        disabled={historyData.length === 0}
+                        className={`w-[3vw] h-[3vw] rounded-full flex items-center justify-center transition-all ${isPlaying ? 'bg-white text-black' : 'bg-[#FFD700] text-black disabled:opacity-20'}`}
+                    >
+                        {isPlaying ? (
+                            <svg className="w-[1.2vw] h-[1.2vw]" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg>
+                        ) : (
+                            <svg className="w-[1.2vw] h-[1.2vw] ml-[0.2vw]" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                        )}
+                    </button>
+
+                    <div className="flex-1">
+                        <div className="flex justify-between text-[0.5vw] font-black mb-[0.4vw] text-white/40 uppercase tracking-widest">
+                            <span>{currentIndex + 1} / {historyData.length} records</span>
+                            <span className="text-[#FFD700]">{((currentIndex / (historyData.length - 1)) * 100 || 0).toFixed(0)}%</span>
+                        </div>
+                        <input
+                            type="range"
+                            min="0"
+                            max={historyData.length > 0 ? historyData.length - 1 : 0}
+                            value={currentIndex}
+                            onChange={(e) => setCurrentIndex(Number(e.target.value))}
+                            className="w-full h-[2px] bg-white/10 rounded-full appearance-none cursor-pointer accent-[#FFD700]"
+                        />
+                    </div>
+                </div>
+            </div>
+
             <div className="absolute top-[5vw] left-1/2 -translate-x-1/2 z-20 flex items-center gap-[3vw] px-[2vw] py-[0.8vw]">
                 <div className="flex items-center gap-[2.5vw]">
                     {[
@@ -64,7 +184,9 @@ const Home = () => {
                         </div>
                     ))}
                 </div>
+
                 <div className="w-[1px] h-[1.5vw] bg-white/20 self-end mb-1" />
+
                 <div className="flex items-center gap-[2.5vw]">
                     {[
                         { label: "OPERATE", val: engineData?.["7"], unit: "H" },
@@ -90,7 +212,7 @@ const Home = () => {
                 </div>
             </div>
 
-            {/* TOP CENTER SECONDARY: ROOM DATA */}
+
             <div className="absolute top-[9vw] left-1/2 -translate-x-1/2 z-10 flex flex-row gap-[3vw] px-[1.5vw] py-[0.5vw]">
                 {[
                     { label: "ROOM PRESSURE", val: engineData?.["17"], unit: "mbar" },
@@ -114,7 +236,7 @@ const Home = () => {
                 ))}
             </div>
 
-            {/* LEFT SIDE: ENGINE PERFORMANCE GAUGES */}
+
             <div className="absolute left-[3vw] top-1/2 -translate-y-1/2 z-10 flex flex-col gap-y-[1.5vw]">
                 {[
                     { label: "ENGINE SPEED", val: engineData?.["8"], unit: "RPM", max: 900 },
@@ -128,26 +250,47 @@ const Home = () => {
 
                     return (
                         <div key={idx} className="flex items-center gap-[1.2vw] group">
+                            {/* GAUGE - LINGKARAN TETAP SAMA */}
                             <div className="relative w-[7.5vw] h-[7.5vw]">
                                 <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                                    <circle cx="50" cy="50" r={radius} fill="transparent" stroke="currentColor" strokeWidth="3" className="text-white/5" />
-                                    <circle cx="50" cy="50" r={radius} fill="transparent" stroke="currentColor" strokeWidth="5" strokeDasharray={circumference}
-                                        style={{ strokeDashoffset: offset, transition: 'stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1)' }}
-                                        className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" />
+                                    <circle
+                                        cx="50" cy="50" r={radius}
+                                        fill="transparent"
+                                        stroke="currentColor"
+                                        strokeWidth="3"
+                                        className="text-white/5"
+                                    />
+                                    <circle
+                                        cx="50" cy="50" r={radius}
+                                        fill="transparent"
+                                        stroke="currentColor"
+                                        strokeWidth="5"
+                                        strokeDasharray={circumference}
+                                        style={{
+                                            strokeDashoffset: offset,
+                                            transition: 'stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                                        }}
+                                        className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]"
+                                    />
                                 </svg>
+                                {/* ANGKA INDIKATOR DIKECILKAN */}
                                 <div className="absolute inset-0 flex items-center justify-center">
                                     <span className="text-[1.6vw] font-light text-white tracking-tighter leading-none opacity-90" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
                                         {item.val ?? "0"}
                                     </span>
                                 </div>
                             </div>
+
+                            {/* LABEL SEBELAH KANAN */}
                             <div className="flex flex-col items-start border-l border-white/10 pl-[1vw] py-[0.5vw]">
-                                <span className="text-[0.7vw] font-black text-white/80 tracking-[0.15em] uppercase leading-none mb-[0.4vw]">
+                                <span className="text-[1.2vw] font-black text-white/80 tracking-[0.15em] uppercase leading-none mb-[0.4vw]">
                                     {item.label}
                                 </span>
                                 <div className="flex items-center gap-2">
                                     <div className="w-[1.2vw] h-[1.5px] bg-yellow-400/80 shadow-[0_0_8px_rgba(250,204,21,0.4)]" />
-                                    <span className="text-yellow-400 font-bold text-[0.6vw] italic opacity-70 uppercase">{item.unit}</span>
+                                    <span className="text-yellow-400 font-bold text-[0.6vw] italic opacity-70 uppercase">
+                                        {item.unit}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -155,7 +298,9 @@ const Home = () => {
                 })}
             </div>
 
-            {/* RIGHT SIDE: PRESSURE & FLUID INDICATORS */}
+            {/* RIGHT SIDE: PRESSURE & FLUID GAUGES (STARTING AIR INCLUDED) */}
+            // src/pages/Simulation.tsx
+
             <div className="absolute right-[2.5vw] top-1/2 -translate-y-1/2 z-10 grid grid-cols-2 gap-x-[2vw] gap-y-[2vw]">
                 {[
                     { label: "STARTING AIR", val: engineData?.["11"], min: 0, max: 30, unit: "BAR" },
@@ -169,23 +314,29 @@ const Home = () => {
                     return (
                         <div key={idx} className="flex flex-col items-end group w-[10vw]">
                             <div className="flex items-center gap-2 mb-[0.2vw]">
-                                <span className="text-[0.7vw] font-black text-white/40 uppercase tracking-widest">{item.label}</span>
+                                <span className="text-[0.7vw] font-black text-white/40 uppercase tracking-widest">
+                                    {item.label}
+                                </span>
                                 <div className="w-[3px] h-[0.8vw] bg-yellow-400" />
                             </div>
+
                             <div className="flex items-baseline gap-[0.4vw]">
                                 <span className="text-[1.8vw] font-light text-white leading-none tracking-tighter" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
                                     {item.val ?? "0.0"}
                                 </span>
                                 <span className="text-[0.6vw] font-bold text-yellow-400/50 uppercase italic tracking-tighter">{item.unit}</span>
                             </div>
+
                             <div className="w-full mt-1.5">
                                 <div className="flex justify-between w-full mb-1 px-[1px]">
                                     <span className="text-[0.4vw] font-bold text-white/20">{item.min}</span>
                                     <span className="text-[0.4vw] font-bold text-white/20">{item.max}</span>
                                 </div>
                                 <div className="relative w-full h-[3px] bg-white/5 overflow-hidden rounded-full">
-                                    <div className="absolute inset-y-0 right-0 bg-gradient-to-l from-yellow-400 to-yellow-600 shadow-[0_0_8px_rgba(250,204,21,0.3)] transition-all duration-1000"
-                                        style={{ width: `${progress}%` }} />
+                                    <div
+                                        className="absolute inset-y-0 right-0 bg-gradient-to-l from-yellow-400 to-yellow-600 shadow-[0_0_8px_rgba(250,204,21,0.3)] transition-all duration-1000"
+                                        style={{ width: `${progress}%` }}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -193,14 +344,14 @@ const Home = () => {
                 })}
             </div>
 
-            {/* CENTER: 3D ENGINE MODEL */}
+
             <div className="relative z-10 w-full h-full flex items-center justify-center">
                 <div className="w-[85vw] h-[75vh] relative">
                     <EngineCanvas />
                 </div>
             </div>
 
-            {/* BOTTOM CENTER: CONTROLS & STATUS */}
+
             <div className="absolute right-[2.4vw] bottom-[2vw] z-20 flex flex-col gap-[1vw]">
                 <div className="flex gap-[1vw]">
                     {[
@@ -252,8 +403,22 @@ const Home = () => {
                     ))}
                 </div>
             </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
     );
 };
 
-export default Home;
+export default Replay;

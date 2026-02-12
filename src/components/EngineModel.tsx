@@ -10,7 +10,7 @@ export default function EngineModel() {
 
     useFrame((_state, delta) => {
         if (modelRef.current) {
-            modelRef.current.rotation.y += delta * 0.5;
+            modelRef.current.rotation.y += delta * 0.0;
         }
     });
 
@@ -18,7 +18,7 @@ export default function EngineModel() {
         <primitive
             ref={modelRef}
             object={scene}
-            scale={1.5}
+            scale={1}
             position={[0, 0, 0]}
         />
     );

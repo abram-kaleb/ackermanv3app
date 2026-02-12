@@ -1,7 +1,9 @@
-// src/pages/Home.tsx
+// src/pages/Simulation.tsx
 
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
+import { uiLabels, translations } from '../data/translations';
+import type { Language } from '../data/translations';
 import EngineCanvas from '../components/EngineCanvas';
 
 const SERVER_IP = '192.168.137.1';
@@ -23,28 +25,27 @@ const BackgroundFUI = () => {
     );
 };
 
-const Home = () => {
+const Simulation = () => {
     const [engineData, setEngineData] = useState<any>(null);
     const [lang, setLang] = useState<Language>('de');
 
     useEffect(() => {
-        fetch(`http://${SERVER_IP}:4000/api/data`)
+        fetch(`http://${SERVER_IP}:4000/api/sim-data`)
             .then(res => res.json())
             .then(data => { if (Array.isArray(data) && data.length > 0) setEngineData(data[0]); })
             .catch(err => console.error(err));
 
-        socket.on('data_update', (newData) => setEngineData(newData));
-        return () => { socket.off('data_update'); };
+        socket.on('sim_update', (newData) => setEngineData(newData));
+        return () => { socket.off('sim_update'); };
     }, []);
+
+    const [isLangOpen, setIsLangOpen] = useState(false);
 
     return (
         <div className="w-full h-full relative overflow-hidden font-sans text-white">
             <BackgroundFUI />
 
 
-
-
-            {/* TOP CENTER: DATE, TIME & OPERATION INFO */}
             <div className="absolute top-[5vw] left-1/2 -translate-x-1/2 z-20 flex items-center gap-[3vw] px-[2vw] py-[0.8vw]">
                 <div className="flex items-center gap-[2.5vw]">
                     {[
@@ -64,7 +65,9 @@ const Home = () => {
                         </div>
                     ))}
                 </div>
+
                 <div className="w-[1px] h-[1.5vw] bg-white/20 self-end mb-1" />
+
                 <div className="flex items-center gap-[2.5vw]">
                     {[
                         { label: "OPERATE", val: engineData?.["7"], unit: "H" },
@@ -90,7 +93,7 @@ const Home = () => {
                 </div>
             </div>
 
-            {/* TOP CENTER SECONDARY: ROOM DATA */}
+
             <div className="absolute top-[9vw] left-1/2 -translate-x-1/2 z-10 flex flex-row gap-[3vw] px-[1.5vw] py-[0.5vw]">
                 {[
                     { label: "ROOM PRESSURE", val: engineData?.["17"], unit: "mbar" },
@@ -114,7 +117,7 @@ const Home = () => {
                 ))}
             </div>
 
-            {/* LEFT SIDE: ENGINE PERFORMANCE GAUGES */}
+
             <div className="absolute left-[3vw] top-1/2 -translate-y-1/2 z-10 flex flex-col gap-y-[1.5vw]">
                 {[
                     { label: "ENGINE SPEED", val: engineData?.["8"], unit: "RPM", max: 900 },
@@ -128,26 +131,47 @@ const Home = () => {
 
                     return (
                         <div key={idx} className="flex items-center gap-[1.2vw] group">
+                            {/* GAUGE - LINGKARAN TETAP SAMA */}
                             <div className="relative w-[7.5vw] h-[7.5vw]">
                                 <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                                    <circle cx="50" cy="50" r={radius} fill="transparent" stroke="currentColor" strokeWidth="3" className="text-white/5" />
-                                    <circle cx="50" cy="50" r={radius} fill="transparent" stroke="currentColor" strokeWidth="5" strokeDasharray={circumference}
-                                        style={{ strokeDashoffset: offset, transition: 'stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1)' }}
-                                        className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" />
+                                    <circle
+                                        cx="50" cy="50" r={radius}
+                                        fill="transparent"
+                                        stroke="currentColor"
+                                        strokeWidth="3"
+                                        className="text-white/5"
+                                    />
+                                    <circle
+                                        cx="50" cy="50" r={radius}
+                                        fill="transparent"
+                                        stroke="currentColor"
+                                        strokeWidth="5"
+                                        strokeDasharray={circumference}
+                                        style={{
+                                            strokeDashoffset: offset,
+                                            transition: 'stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                                        }}
+                                        className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]"
+                                    />
                                 </svg>
+                                {/* ANGKA INDIKATOR DIKECILKAN */}
                                 <div className="absolute inset-0 flex items-center justify-center">
                                     <span className="text-[1.6vw] font-light text-white tracking-tighter leading-none opacity-90" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
                                         {item.val ?? "0"}
                                     </span>
                                 </div>
                             </div>
+
+                            {/* LABEL SEBELAH KANAN */}
                             <div className="flex flex-col items-start border-l border-white/10 pl-[1vw] py-[0.5vw]">
-                                <span className="text-[0.7vw] font-black text-white/80 tracking-[0.15em] uppercase leading-none mb-[0.4vw]">
+                                <span className="text-[1.2vw] font-black text-white/80 tracking-[0.15em] uppercase leading-none mb-[0.4vw]">
                                     {item.label}
                                 </span>
                                 <div className="flex items-center gap-2">
                                     <div className="w-[1.2vw] h-[1.5px] bg-yellow-400/80 shadow-[0_0_8px_rgba(250,204,21,0.4)]" />
-                                    <span className="text-yellow-400 font-bold text-[0.6vw] italic opacity-70 uppercase">{item.unit}</span>
+                                    <span className="text-yellow-400 font-bold text-[0.6vw] italic opacity-70 uppercase">
+                                        {item.unit}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -155,7 +179,9 @@ const Home = () => {
                 })}
             </div>
 
-            {/* RIGHT SIDE: PRESSURE & FLUID INDICATORS */}
+            {/* RIGHT SIDE: PRESSURE & FLUID GAUGES (STARTING AIR INCLUDED) */}
+            // src/pages/Simulation.tsx
+
             <div className="absolute right-[2.5vw] top-1/2 -translate-y-1/2 z-10 grid grid-cols-2 gap-x-[2vw] gap-y-[2vw]">
                 {[
                     { label: "STARTING AIR", val: engineData?.["11"], min: 0, max: 30, unit: "BAR" },
@@ -169,23 +195,29 @@ const Home = () => {
                     return (
                         <div key={idx} className="flex flex-col items-end group w-[10vw]">
                             <div className="flex items-center gap-2 mb-[0.2vw]">
-                                <span className="text-[0.7vw] font-black text-white/40 uppercase tracking-widest">{item.label}</span>
+                                <span className="text-[0.7vw] font-black text-white/40 uppercase tracking-widest">
+                                    {item.label}
+                                </span>
                                 <div className="w-[3px] h-[0.8vw] bg-yellow-400" />
                             </div>
+
                             <div className="flex items-baseline gap-[0.4vw]">
                                 <span className="text-[1.8vw] font-light text-white leading-none tracking-tighter" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
                                     {item.val ?? "0.0"}
                                 </span>
                                 <span className="text-[0.6vw] font-bold text-yellow-400/50 uppercase italic tracking-tighter">{item.unit}</span>
                             </div>
+
                             <div className="w-full mt-1.5">
                                 <div className="flex justify-between w-full mb-1 px-[1px]">
                                     <span className="text-[0.4vw] font-bold text-white/20">{item.min}</span>
                                     <span className="text-[0.4vw] font-bold text-white/20">{item.max}</span>
                                 </div>
                                 <div className="relative w-full h-[3px] bg-white/5 overflow-hidden rounded-full">
-                                    <div className="absolute inset-y-0 right-0 bg-gradient-to-l from-yellow-400 to-yellow-600 shadow-[0_0_8px_rgba(250,204,21,0.3)] transition-all duration-1000"
-                                        style={{ width: `${progress}%` }} />
+                                    <div
+                                        className="absolute inset-y-0 right-0 bg-gradient-to-l from-yellow-400 to-yellow-600 shadow-[0_0_8px_rgba(250,204,21,0.3)] transition-all duration-1000"
+                                        style={{ width: `${progress}%` }}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -193,15 +225,15 @@ const Home = () => {
                 })}
             </div>
 
-            {/* CENTER: 3D ENGINE MODEL */}
+
             <div className="relative z-10 w-full h-full flex items-center justify-center">
                 <div className="w-[85vw] h-[75vh] relative">
                     <EngineCanvas />
                 </div>
             </div>
 
-            {/* BOTTOM CENTER: CONTROLS & STATUS */}
-            <div className="absolute right-[2.4vw] bottom-[2vw] z-20 flex flex-col gap-[1vw]">
+
+            <div className="absolute left-[40vw] bottom-[2vw] z-20 flex flex-col gap-[1vw]">
                 <div className="flex gap-[1vw]">
                     {[
                         {
@@ -252,8 +284,24 @@ const Home = () => {
                     ))}
                 </div>
             </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
     );
 };
 
-export default Home;
+export default Simulation;
