@@ -3,8 +3,8 @@
 import { createContext, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
+import Monitor from './pages/Monitor';
 import Replay from './pages/Replay';
-import RawData from './pages/RawData';
 import Simulation from './pages/Simulation';
 import Login from './pages/Login';
 
@@ -34,10 +34,9 @@ const FloatingNav = () => {
     const formattedDate = time.toLocaleDateString('en-GB').replace(/\//g, ' / ');
 
     const menu = [
-        { path: '/', label: 'MONITORING' },
         { path: '/replay', label: 'REPLAY' },
-        { path: '/simulation', label: 'SIMULATION' },
-        { path: '/raw', label: 'RAW DATA' }
+        { path: '/', label: 'HOME' },
+        { path: '/simulation', label: 'SIMULATION' }
     ];
 
     return (
@@ -139,8 +138,8 @@ const App = () => {
                     <main className="w-full h-full relative">
                         <Routes>
                             <Route path="/" element={<Home />} />
+
                             <Route path="/replay" element={<Replay />} />
-                            <Route path="/raw" element={<RawData />} />
                             <Route path="/simulation" element={<Simulation />} />
                         </Routes>
                     </main>

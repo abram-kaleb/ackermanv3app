@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import EngineCanvas from '../components/EngineCanvas';
+import MonitorWindow from '../components/HomeMonitor';
 
 const SERVER_IP = '192.168.137.1';
 const socket = io(`http://${SERVER_IP}:4000`, {
@@ -23,9 +24,12 @@ const BackgroundFUI = () => {
     );
 };
 
+
 const Home = () => {
     const [engineData, setEngineData] = useState<any>(null);
     const [lang, setLang] = useState<Language>('de');
+
+    const [isMonitorOpen, setIsMonitorOpen] = useState(false);
 
     useEffect(() => {
         fetch(`http://${SERVER_IP}:4000/api/data`)
@@ -115,7 +119,7 @@ const Home = () => {
             </div>
 
             {/* LEFT SIDE: ENGINE PERFORMANCE GAUGES */}
-            <div className="absolute left-[3vw] top-1/2 -translate-y-1/2 z-10 flex flex-col gap-y-[1.5vw]">
+            <div className="absolute left-[3vw] top-[20vw] -translate-y-1/2 z-10 flex flex-col gap-y-[1.5vw]">
                 {[
                     { label: "ENGINE SPEED", val: engineData?.["8"], unit: "RPM", max: 900 },
                     { label: "BRAKE POWER", val: engineData?.["9"], unit: "kW", max: 1120 },
@@ -127,27 +131,33 @@ const Home = () => {
                     const offset = circumference - (progress / 100) * circumference;
 
                     return (
-                        <div key={idx} className="flex items-center gap-[1.2vw] group">
-                            <div className="relative w-[7.5vw] h-[7.5vw]">
-                                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                                    <circle cx="50" cy="50" r={radius} fill="transparent" stroke="currentColor" strokeWidth="3" className="text-white/5" />
-                                    <circle cx="50" cy="50" r={radius} fill="transparent" stroke="currentColor" strokeWidth="5" strokeDasharray={circumference}
-                                        style={{ strokeDashoffset: offset, transition: 'stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1)' }}
-                                        className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" />
-                                </svg>
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-[1.6vw] font-light text-white tracking-tighter leading-none opacity-90" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                                        {item.val ?? "0"}
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="flex flex-col items-start border-l border-white/10 pl-[1vw] py-[0.5vw]">
-                                <span className="text-[0.7vw] font-black text-white/80 tracking-[0.15em] uppercase leading-none mb-[0.4vw]">
+                        <div key={idx} className="flex flex-col gap-y-[0.6vw]">
+                            <div className="flex items-center gap-[0.5vw] ml-[0.5vw]">
+                                <div className="w-[0.3vw] h-[0.3vw] bg-yellow-400 rotate-45 shadow-[0_0_5px_rgba(250,204,21,0.8)]" />
+                                <span className="text-[0.65vw] font-black text-white/90 tracking-[0.2em] uppercase italic">
                                     {item.label}
                                 </span>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-[1.2vw] h-[1.5px] bg-yellow-400/80 shadow-[0_0_8px_rgba(250,204,21,0.4)]" />
-                                    <span className="text-yellow-400 font-bold text-[0.6vw] italic opacity-70 uppercase">{item.unit}</span>
+                            </div>
+
+                            <div className="flex items-center gap-[1.2vw] group">
+                                <div className="relative w-[7.5vw] h-[7.5vw]">
+                                    <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                                        <circle cx="50" cy="50" r={radius} fill="transparent" stroke="currentColor" strokeWidth="3" className="text-white/5" />
+                                        <circle cx="50" cy="50" r={radius} fill="transparent" stroke="currentColor" strokeWidth="5" strokeDasharray={circumference}
+                                            style={{ strokeDashoffset: offset, transition: 'stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1)' }}
+                                            className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" />
+                                    </svg>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <span className="text-[1.6vw] font-light text-white tracking-tighter leading-none opacity-90" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                                            {item.val ?? "0"}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-start border-l border-white/10 pl-[1vw] py-[0.5vw]">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-[1.2vw] h-[1.5px] bg-yellow-400/80 shadow-[0_0_8px_rgba(250,204,21,0.4)]" />
+                                        <span className="text-yellow-400 font-bold text-[0.6vw] italic opacity-70 uppercase">{item.unit}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -201,7 +211,7 @@ const Home = () => {
             </div>
 
             {/* BOTTOM CENTER: CONTROLS & STATUS */}
-            <div className="absolute right-[2.4vw] bottom-[2vw] z-20 flex flex-col gap-[1vw]">
+            <div className="absolute right-[2.5vw] bottom-[2vw] z-20 flex flex-col gap-[1vw]">
                 <div className="flex gap-[1vw]">
                     {[
                         {
@@ -252,6 +262,51 @@ const Home = () => {
                     ))}
                 </div>
             </div>
+            {/* MONITOR TRIGGER BUTTON */}
+            <div className="absolute bottom-[2vw] left-[2.4vw] z-50">
+                <button
+                    onClick={() => setIsMonitorOpen(true)}
+                    className="group relative flex items-center gap-[0.8vw] px-[1.2vw] py-[0.7vw] bg-black/40 backdrop-blur-md border border-yellow-400/30 rounded-lg hover:border-yellow-400 transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] overflow-hidden"
+                >
+                    <div className="absolute inset-0 bg-yellow-400/5 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+
+                    <div className="relative flex flex-col gap-[2px]">
+                        <div className="w-[1.2vw] h-[2px] bg-yellow-400 group-hover:w-[1.5vw] transition-all" />
+                        <div className="w-[0.8vw] h-[2px] bg-yellow-400/60" />
+                        <div className="w-[1.2vw] h-[2px] bg-yellow-400 group-hover:w-[0.6vw] transition-all" />
+                    </div>
+
+                    <div className="relative flex flex-col items-start border-l border-white/10 pl-[0.8vw]">
+
+                        <span className="text-[0.8vw] font-black text-white uppercase tracking-[0.15em]">FULL MONITOR</span>
+                    </div>
+                </button>
+            </div>
+
+            {/* MONITOR WINDOW OVERLAY */}
+            {isMonitorOpen && (
+                <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-[4vw]">
+                    <div className="relative w-full h-full max-w-[85vw] max-h-[85vh] flex flex-col">
+                        {/* Close Action Triggered from Outside/Header Container */}
+                        <button
+                            onClick={() => setIsMonitorOpen(false)}
+                            className="absolute -top-[1vw] -right-[1vw] z-[110] w-[2.5vw] h-[2.5vw] bg-red-500 text-white rounded-full flex items-center justify-center text-[1.2vw] font-bold shadow-xl hover:bg-red-600 transition-colors border-2 border-[#0f171d]"
+                        >
+                            ✕
+                        </button>
+
+                        <div className="w-full h-full overflow-hidden rounded-xl border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+                            <MonitorWindow />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
+
+
+
+
         </div>
     );
 };
