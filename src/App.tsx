@@ -1,9 +1,9 @@
 // src/App.tsx
 
-import { createContext, useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { createContext, useState, useEffect, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import Home from './pages/Home';
-import Monitor from './pages/Monitor';
+import HomeDemo from './pages/HomeDemo';
 import Replay from './pages/Replay';
 import Simulation from './pages/Simulation';
 import Login from './pages/Login';
@@ -17,6 +17,7 @@ export const AppStatusContext = createContext({
 
 const FloatingNav = () => {
     const location = useLocation();
+    const navigate = useNavigate();
     const [time, setTime] = useState(new Date());
 
     useEffect(() => {
@@ -35,7 +36,7 @@ const FloatingNav = () => {
 
     const menu = [
         { path: '/replay', label: 'REPLAY' },
-        { path: '/', label: 'HOME' },
+        { path: '/', label: location.pathname === '/home-demo' ? 'HOME(DEMO)' : 'HOME' },
         { path: '/simulation', label: 'SIMULATION' }
     ];
 
@@ -67,7 +68,7 @@ const FloatingNav = () => {
             <nav className="flex items-center justify-center w-full h-full">
                 <div className="flex items-center h-full">
                     {menu.map((item, idx) => {
-                        const isActive = location.pathname === item.path;
+                        const isActive = location.pathname === item.path || (item.path === '/' && location.pathname === '/home-demo');
                         return (
                             <div key={item.path} className="flex items-center h-full">
                                 <Link
@@ -97,9 +98,12 @@ const FloatingNav = () => {
             </nav>
 
             <div className="absolute right-[2vw] z-20">
-                <span className="text-[0.7vw] font-black text-white/30 tracking-[0.3em] uppercase font-mono">
+                <button
+                    onClick={() => navigate('/home-demo')}
+                    className="text-[0.7vw] font-black text-white/30 tracking-[0.3em] uppercase font-mono hover:text-white/80 transition-colors"
+                >
                     Ackerman v3
-                </span>
+                </button>
             </div>
         </div>
     );
@@ -138,7 +142,7 @@ const App = () => {
                     <main className="w-full h-full relative">
                         <Routes>
                             <Route path="/" element={<Home />} />
-
+                            <Route path="/home-demo" element={<HomeDemo />} />
                             <Route path="/replay" element={<Replay />} />
                             <Route path="/simulation" element={<Simulation />} />
                         </Routes>

@@ -18,7 +18,7 @@ export default function EngineCanvas() {
             <OrthographicCamera
                 makeDefault
                 zoom={isMobile ? 250 : 550}
-                position={[80, 60, -70]}
+                position={[20, 20, -50]}
                 near={0.1}
                 far={1000}
             />
@@ -27,8 +27,6 @@ export default function EngineCanvas() {
                 <Stage
                     preset="rembrandt"
                     intensity={1}
-                    environment="city"
-                    shadows={{ type: 'contact', opacity: 0.7, blur: 3 }}
                     adjustCamera={false}
                 >
                     <EngineModel />

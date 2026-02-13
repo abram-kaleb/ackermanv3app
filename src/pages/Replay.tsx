@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import EngineCanvas from '../components/EngineCanvas';
 import { translations } from '../data/translations';
 import type { Language } from '../data/translations';
+import ReplayMonitor from '../components/ReplayMonitor';
+
 
 const SERVER_IP = '192.168.137.1';
 
@@ -32,6 +34,8 @@ const Replay = () => {
     const [selectedMM, setSelectedMM] = useState('');
     const [selectedDD, setSelectedDD] = useState('');
     const [showPicker, setShowPicker] = useState(false);
+
+    const [isMonitorOpen, setIsMonitorOpen] = useState(false);
 
     const pickerRef = useRef<HTMLDivElement>(null);
     const engineData = historyData[currentIndex] || null;
@@ -122,48 +126,10 @@ const Replay = () => {
                     )}
                 </div>
 
-                <div className="flex flex-col items-end">
-                    <div className="flex items-center gap-[0.5vw] mb-[0.2vw]">
-                        <div className={`w-[0.4vw] h-[0.4vw] rounded-full ${isPlaying ? 'bg-[#FFD700] animate-pulse' : 'bg-white/20'}`} />
-                        <p className="text-[0.5vw] font-black text-white/40 uppercase tracking-[0.3em]">REPLAY_TIME</p>
-                    </div>
-                    <p className="text-[2.2vw] font-mono font-light text-white leading-none tracking-tighter">
-                        {engineData?.["6"] || "00:00:00"}
-                    </p>
-                </div>
+
             </header>
 
-            {/* PLAYBACK CONTROL HUD */}
-            <div className="absolute bottom-[2vw] left-1/2 -translate-x-1/2 z-40 w-[40vw]">
-                <div className="backdrop-blur-md bg-white/5 border border-white/10 p-[1vw] rounded-2xl flex items-center gap-[1.5vw] shadow-2xl">
-                    <button
-                        onClick={() => setIsPlaying(!isPlaying)}
-                        disabled={historyData.length === 0}
-                        className={`w-[3vw] h-[3vw] rounded-full flex items-center justify-center transition-all ${isPlaying ? 'bg-white text-black' : 'bg-[#FFD700] text-black disabled:opacity-20'}`}
-                    >
-                        {isPlaying ? (
-                            <svg className="w-[1.2vw] h-[1.2vw]" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg>
-                        ) : (
-                            <svg className="w-[1.2vw] h-[1.2vw] ml-[0.2vw]" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                        )}
-                    </button>
 
-                    <div className="flex-1">
-                        <div className="flex justify-between text-[0.5vw] font-black mb-[0.4vw] text-white/40 uppercase tracking-widest">
-                            <span>{currentIndex + 1} / {historyData.length} records</span>
-                            <span className="text-[#FFD700]">{((currentIndex / (historyData.length - 1)) * 100 || 0).toFixed(0)}%</span>
-                        </div>
-                        <input
-                            type="range"
-                            min="0"
-                            max={historyData.length > 0 ? historyData.length - 1 : 0}
-                            value={currentIndex}
-                            onChange={(e) => setCurrentIndex(Number(e.target.value))}
-                            className="w-full h-[2px] bg-white/10 rounded-full appearance-none cursor-pointer accent-[#FFD700]"
-                        />
-                    </div>
-                </div>
-            </div>
 
             <div className="absolute top-[5vw] left-1/2 -translate-x-1/2 z-20 flex items-center gap-[3vw] px-[2vw] py-[0.8vw]">
                 <div className="flex items-center gap-[2.5vw]">
@@ -401,6 +367,84 @@ const Replay = () => {
                             </span>
                         </button>
                     ))}
+                </div>
+            </div>
+
+
+            {/* MONITOR TRIGGER BUTTON */}
+            <div className="absolute bottom-[2vw] left-[2.4vw] z-50">
+                <button
+                    onClick={() => setIsMonitorOpen(true)}
+                    className="group relative flex items-center gap-[0.8vw] px-[1.2vw] py-[0.7vw] bg-black/40 backdrop-blur-md border border-yellow-400/30 rounded-lg hover:border-yellow-400 transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] overflow-hidden"
+                >
+                    <div className="absolute inset-0 bg-yellow-400/5 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+
+                    <div className="relative flex flex-col gap-[2px]">
+                        <div className="w-[1.2vw] h-[2px] bg-yellow-400 group-hover:w-[1.5vw] transition-all" />
+                        <div className="w-[0.8vw] h-[2px] bg-yellow-400/60" />
+                        <div className="w-[1.2vw] h-[2px] bg-yellow-400 group-hover:w-[0.6vw] transition-all" />
+                    </div>
+
+                    <div className="relative flex flex-col items-start border-l border-white/10 pl-[0.8vw]">
+
+                        <span className="text-[0.8vw] font-black text-white uppercase tracking-[0.15em]">FULL MONITOR</span>
+                    </div>
+                </button>
+            </div>
+
+            // src/pages/Replay.tsx
+
+            {/* MONITOR WINDOW OVERLAY */}
+            {isMonitorOpen && (
+                <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-[4vw] pb-[10vw]">
+                    <div className="relative w-full h-full max-w-[85vw] max-h-[70vh] flex flex-col">
+                        <button
+                            onClick={() => setIsMonitorOpen(false)}
+                            className="absolute -top-[1vw] -right-[1vw] z-[110] w-[2.5vw] h-[2.5vw] bg-red-500 text-white rounded-full flex items-center justify-center text-[1.2vw] font-bold shadow-xl hover:bg-red-600 transition-colors border-2 border-[#0f171d]"
+                        >
+                            ✕
+                        </button>
+
+                        <div className="w-full h-full overflow-hidden rounded-xl border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+                            <ReplayMonitor
+                                engineData={historyData[currentIndex]}
+                                lang={lang}
+                                onClose={() => setIsMonitorOpen(false)}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* PLAYBACK CONTROL HUD */}
+            <div className="absolute bottom-[2vw] left-1/2 -translate-x-1/2 z-[150] w-[40vw]">
+                <div className="backdrop-blur-md bg-black/40 border border-white/20 p-[1vw] rounded-2xl flex items-center gap-[1.5vw] shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+                    <button
+                        onClick={() => setIsPlaying(!isPlaying)}
+                        disabled={historyData.length === 0}
+                        className={`w-[3vw] h-[3vw] rounded-full flex items-center justify-center transition-all ${isPlaying ? 'bg-white text-black' : 'bg-[#FFD700] text-black disabled:opacity-20'}`}
+                    >
+                        {isPlaying ? (
+                            <svg className="w-[1.2vw] h-[1.2vw]" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg>
+                        ) : (
+                            <svg className="w-[1.2vw] h-[1.2vw] ml-[0.2vw]" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                        )}
+                    </button>
+
+                    <div className="flex-1">
+                        <div className="flex justify-between text-[0.5vw] font-black mb-[0.4vw] text-white/80 uppercase tracking-widest">
+                            <span>{currentIndex + 1} / {historyData.length} records</span>
+                            <span className="text-[#FFD700]">{((currentIndex / (historyData.length - 1)) * 100 || 0).toFixed(0)}%</span>
+                        </div>
+                        <input
+                            type="range"
+                            min="0"
+                            max={historyData.length > 0 ? historyData.length - 1 : 0}
+                            value={currentIndex}
+                            onChange={(e) => setCurrentIndex(Number(e.target.value))}
+                            className="w-full h-[2px] bg-white/20 rounded-full appearance-none cursor-pointer accent-[#FFD700]"
+                        />
+                    </div>
                 </div>
             </div>
 
